@@ -128,9 +128,9 @@ function buildLayout(){
 buildLayout();
 
 const TD={
-  arrow:{e:'🏹',cost:50,dmg:12,range:130,rate:1.0,col:'#4488ff'},
-  magic:{e:'🔮',cost:80,dmg:28,range:110,rate:.55,col:'#cc44ff'},
-  cannon:{e:'💣',cost:120,dmg:55,range:95,rate:.35,col:'#ff8833',area:true},
+  arrow:{e:'🏹',cost:50,dmg:12,range:120,rate:1.0,col:'#4488ff'},
+  magic:{e:'🔮',cost:80,dmg:28,range:180,rate:.55,col:'#cc44ff'},
+  cannon:{e:'💣',cost:120,dmg:55,range:180,rate:.35,col:'#ff8833',area:true,aoeCount:3},
   laser:{e:'⚡',cost:160,dmg:40,range:150,rate:1.5,col:'#ffee00'},
 };
 const ED=[
@@ -250,7 +250,7 @@ function onAnswer(i){
 // ── Classes ────────────────────────────────────────────────────────────────
 class Tower{
   constructor(type,x,y,si){
-    const d=TD[type];Object.assign(this,{type,x,y,si,e:d.e,baseDmg:d.dmg,baseRange:d.range,rate:d.rate,area:d.area||false,col:d.col,cd:0});
+    const d=TD[type];Object.assign(this,{type,x,y,si,e:d.e,baseDmg:d.dmg,baseRange:d.range,rate:d.rate,area:d.area||false,aoeCount:d.aoeCount||Infinity,col:d.col,cd:0});
   }
   get dmg(){return this.baseDmg*dmgMult();}
   get range(){return this.baseRange*rangeMult();}
@@ -259,7 +259,7 @@ class Tower{
     if(this.cd<=0){
       let tgt=null;
       for(const e of enemies)if(e.alive&&Math.hypot(e.x-this.x,e.y-this.y)<this.range&&(!tgt||e.dist>tgt.dist))tgt=e;
-      if(tgt){const mb=blastFrames>0,dmg=mb?this.dmg*4:this.dmg;projs.push(new Proj(this.x,this.y,tgt,dmg,this.area,mb,this.col));this.cd=1/this.rate;}
+      if(tgt){const mb=blastFrames>0,dmg=mb?this.dmg*4:this.dmg;projs.push(new Proj(this.x,this.y,tgt,dmg,this.area,mb,this.col,this.aoeCount));this.cd=1/this.rate;}
     }
   }
   draw(){
@@ -321,12 +321,12 @@ class Enemy{
 }
 
 class Proj{
-  constructor(x,y,tgt,dmg,area,math,col){Object.assign(this,{x,y,tgt,dmg,area,math,col,alive:true,spd:math?480:280,r:math?8:4});}
+  constructor(x,y,tgt,dmg,area,math,col,aoeCount=Infinity){Object.assign(this,{x,y,tgt,dmg,area,math,col,aoeCount,alive:true,spd:math?480:280,r:math?8:4});}
   update(dt){
     if(!this.tgt.alive){this.alive=false;return;}
     const dx=this.tgt.x-this.x,dy=this.tgt.y-this.y,d=Math.hypot(dx,dy),step=this.spd*dt;
     if(d<=step){
-      if(this.area)enemies.forEach(e=>{if(e.alive&&Math.hypot(e.x-this.tgt.x,e.y-this.tgt.y)<80)e.hit(this.dmg*(e===this.tgt?1:.6));});
+      if(this.area){const nearby=enemies.filter(e=>e.alive).sort((a,b)=>Math.hypot(a.x-this.tgt.x,a.y-this.tgt.y)-Math.hypot(b.x-this.tgt.x,b.y-this.tgt.y)).slice(0,this.aoeCount);nearby.forEach((e,i)=>e.hit(this.dmg*(i===0?1:.6)));}
       else this.tgt.hit(this.dmg);
       this.alive=false;
     }else{this.x+=dx/d*step;this.y+=dy/d*step;}
