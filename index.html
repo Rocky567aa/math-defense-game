@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>数字防线</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#111;overflow:hidden;width:100vw;height:100vh;font-family:'Arial Rounded MT Bold',Arial,sans-serif}
+canvas{display:block;position:fixed;top:52px;left:0}
+#hud{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(5,12,30,.95);border-bottom:1px solid rgba(80,120,255,.2);display:flex;align-items:center;justify-content:space-around;z-index:20}
+.hb{text-align:center;color:#fff}.hv{font-size:19px;font-weight:700;line-height:1.1}.hl{font-size:10px;color:#556}
+#bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(5,12,30,.97);border-top:2px solid rgba(80,120,255,.25);z-index:20;padding:8px 12px 14px}
+#trow{display:flex;gap:8px;justify-content:center;margin-bottom:8px}
+.tbtn{display:flex;flex-direction:column;align-items:center;background:rgba(20,50,130,.7);border:2px solid rgba(80,130,220,.4);border-radius:10px;padding:5px 10px;cursor:pointer;min-width:68px;color:#fff}
+.tbtn.sel{border-color:#ffdd00;background:rgba(80,60,0,.7)}.tbtn.dis{opacity:.4}
+.te{font-size:22px}.tn{font-size:10px;color:#aaa}.tc{font-size:11px;color:#ffdd00;font-weight:700}
+#qbox{text-align:center;color:#fff;font-size:23px;font-weight:700;margin-bottom:8px;text-shadow:0 0 12px rgba(80,160,255,.7)}
+#qbox .ql{font-size:11px;color:#556;font-weight:400;margin-right:6px}
+#arow{display:flex;gap:8px}
+.abtn{flex:1;padding:13px 4px;font-size:21px;font-weight:700;background:linear-gradient(160deg,rgba(25,55,145,.9),rgba(12,30,100,.9));color:#fff;border:2px solid rgba(80,120,255,.5);border-radius:12px;cursor:pointer;text-align:center}
+.abtn:active{transform:scale(.93)}.abtn.ok{background:linear-gradient(160deg,#116633,#0a3322);border-color:#44ff88}.abtn.no{background:linear-gradient(160deg,#661111,#440a0a);border-color:#ff4444}
+.scr{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#07102a,#050a18);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.scr h1{font-size:36px;color:#fff;margin-bottom:6px}
+.scr p{color:#889;font-size:14px;text-align:center;line-height:1.8;margin-bottom:20px}
+.cards{display:flex;gap:10px;margin-bottom:20px;justify-content:center}
+.card{background:rgba(255,255,255,.06);border-radius:12px;padding:10px 14px;text-align:center;color:#ccc;font-size:13px;flex:1;min-width:75px}
+.card span{font-size:26px;display:block;margin-bottom:4px}
+.bbtn{padding:14px 48px;font-size:19px;font-weight:700;background:linear-gradient(135deg,#3355ff,#2233cc);color:#fff;border:none;border-radius:50px;cursor:pointer;box-shadow:0 6px 18px rgba(50,80,255,.4);margin-top:6px}
+.bbtn:active{transform:scale(.95)}
+.stats{display:flex;gap:12px;margin:10px 0 22px}
+.st{background:rgba(255,255,255,.07);border-radius:12px;padding:12px 16px;text-align:center}
+.st .sv{font-size:24px;font-weight:700;color:#ffdd00}.st .sl{font-size:11px;color:#778;margin-top:3px}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="hb"><div class="hv" id="hLives">❤️❤️❤️</div><div class="hl">生命</div></div>
+  <div class="hb"><div class="hv" id="hWave">第1关</div><div class="hl">关卡</div></div>
+  <div class="hb"><div class="hv" id="hScore">0</div><div class="hl">分数</div></div>
+  <div class="hb"><div class="hv" id="hCoins">💰50</div><div class="hl">金币</div></div>
+</div>
+
+<canvas id="cv"></canvas>
+
+<div id="bottom">
+  <div id="trow">
+    <div class="tbtn" id="tb-arrow" onclick="selTower('arrow')"><span class="te">🏹</span><span class="tn">弓箭塔</span><span class="tc">50💰</span></div>
+    <div class="tbtn" id="tb-magic" onclick="selTower('magic')"><span class="te">🔮</span><span class="tn">魔法塔</span><span class="tc">80💰</span></div>
+    <div class="tbtn" id="tb-cannon" onclick="selTower('cannon')"><span class="te">💣</span><span class="tn">大炮</span><span class="tc">120💰</span></div>
+    <div class="tbtn" id="tb-none" onclick="selTower(null)" style="min-width:50px"><span class="te">✋</span><span class="tn">取消</span></div>
+  </div>
+  <div id="qbox"><span class="ql">答题开炮！</span><span id="qexpr">3 + 4 = ?</span></div>
+  <div id="arow">
+    <button class="abtn" id="a0" onclick="onAnswer(0)">-</button>
+    <button class="abtn" id="a1" onclick="onAnswer(1)">-</button>
+    <button class="abtn" id="a2" onclick="onAnswer(2)">-</button>
+    <button class="abtn" id="a3" onclick="onAnswer(3)">-</button>
+  </div>
+</div>
+
+<div class="scr" id="sStart">
+  <h1>🏰 数字防线</h1>
+  <p>答对数学题才能开炮💥<br>建造防御塔，保护你的基地！</p>
+  <div class="cards">
+    <div class="card"><span>🧮</span>答对题<br>大炮齐发</div>
+    <div class="card"><span>🏹</span>建造塔<br>自动攻击</div>
+    <div class="card"><span>💰</span>击败敌人<br>获金币</div>
+    <div class="card"><span>📈</span>越往后<br>题越难</div>
+  </div>
+  <button class="bbtn" onclick="startGame()">开始游戏 🚀</button>
+</div>
+
+<div class="scr" id="sOver" style="display:none">
+  <h1 id="oTitle">游戏结束</h1>
+  <div class="stats">
+    <div class="st"><div class="sv" id="oScore">0</div><div class="sl">得分</div></div>
+    <div class="st"><div class="sv" id="oWave">1</div><div class="sl">到达关卡</div></div>
+    <div class="st"><div class="sv" id="oCorrect">0</div><div class="sl">答对题数</div></div>
+  </div>
+  <p id="oMsg"></p>
+  <button class="bbtn" onclick="startGame()">再玩一次 🔥</button>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const cx = cv.getContext('2d');
+const BOT = () => document.getElementById('bottom').offsetHeight;
+const TOP = 52;
+function resize() { cv.width = innerWidth; cv.height = innerHeight - TOP - BOT(); }
+resize();
+window.addEventListener('resize', () => { resize(); buildLayout(); });
+const WPF = [[-0.02,.22],[.20,.22],[.20,.62],[.48,.62],[.48,.17],[.74,.17],[.74,.72],[1.02,.72]];
+const SPF = [[.07,.07],[.34,.07],[.61,.07],[.87,.07],[.07,.42],[.34,.42],[.61,.42],[.87,.42],[.10,.82],[.36,.82],[.60,.82],[.86,.82]];
+let WP=[], SP=[];
+function buildLayout() {
+  WP = WPF.map(([fx,fy])=>({x:fx*cv.width, y:fy*cv.height}));
+  SP = SPF.map(([fx,fy])=>({x:fx*cv.width, y:fy*cv.height}));
+}
+buildLayout();
+const TD = {
+  arrow:  {e:'🏹',cost:50, dmg:12,range:130,rate:1.0, col:'#4488ff'},
+  magic:  {e:'🔮',cost:80, dmg:28,range:110,rate:.55, col:'#cc44ff'},
+  cannon: {e:'💣',cost:120,dmg:55,range:95, rate:.35, col:'#ff8833',area:true},
+};
+const ED = [
+  {e:'👾',hp:40, spd:65,rew:10,col:'#44ff88'},
+  {e:'🐛',hp:90, spd:52,rew:15,col:'#ffcc44'},
+  {e:'🦖',hp:180,spd:42,rew:25,col:'#ff8844'},
+  {e:'🤖',hp:280,spd:35,rew:35,col:'#44aaff'},
+  {e:'🐉',hp:500,spd:28,rew:80,col:'#ff4455',boss:true},
+];
+const WAVES = [
+  [[0,8,.9]],
+  [[0,6,.8],[1,3,1.2]],
+  [[0,5,.8],[1,5,1.0]],
+  [[1,8,.9],[2,2,1.5]],
+  [[1,6,.8],[2,4,1.2]],
+  [[2,7,1.0],[3,2,2.0]],
+  [[1,4,.7],[2,5,1.0],[3,2,1.5]],
+  [[2,6,.9],[3,4,1.2]],
+  [[3,8,.9],[2,4,.7]],
+  [[3,5,.9],[4,1,0]],
+];
+let Q=null, aCool=0, correctCount=0, blastFrames=0;
+function genQ(w) {
+  let expr, ans;
+  if (w<=3) { const a=rnd(2,16),b=rnd(2,16); expr=`${a} + ${b}`; ans=a+b; }
+  else if (w<=6) { const a=rnd(2,9),b=rnd(2,9); expr=`${a} × ${b}`; ans=a*b; }
+  else {
+    const a=rnd(2,8),b=rnd(2,8),c=rnd(1,9);
+    if (Math.random()<.5){expr=`${a}×${b}+${c}`;ans=a*b+c;}
+    else{expr=`${a}×${b}-${c}`;ans=a*b-c;}
+  }
+  const wrong=new Set();
+  while(wrong.size<3){const d=rnd(1,6),v=ans+(Math.random()<.5?d:-d);if(v!==ans&&v>0)wrong.add(v);}
+  const choices=[ans,...wrong];
+  for(let i=choices.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[choices[i],choices[j]]=[choices[j],choices[i]];}
+  return {expr,ans,choices,ci:choices.indexOf(ans)};
+}
+function updateQUI() {
+  if(!Q)return;
+  document.getElementById('qexpr').textContent = Q.expr+' = ?';
+  for(let i=0;i<4;i++){
+    const b=document.getElementById(`a${i}`);
+    b.textContent=Q.choices[i]; b.className='abtn'; b.disabled=(aCool>0);
+  }
+}
+function onAnswer(i) {
+  if(aCool>0||!running)return;
+  const b=document.getElementById(`a${i}`);
+  if(i===Q.ci){
+    correctCount++; score+=5; updateHUD();
+    b.className='abtn ok';
+    blastFrames=180;
+    towers.forEach(t=>t.cd=0);
+    addFT(cv.width/2,cv.height/2,'答对了! ⚡','#44ff88',32);
+    setTimeout(()=>{Q=genQ(wave);updateQUI();},300);
+  } else {
+    b.className='abtn no'; aCool=90;
+    addFT(cv.width/2,cv.height/2,'答错了!','#ff4455',28);
+    setTimeout(()=>{b.className='abtn';},400);
+  }
+}
+class Tower {
+  constructor(type,x,y,si){
+    const d=TD[type]; Object.assign(this,{type,x,y,si,e:d.e,dmg:d.dmg,range:d.range,rate:d.rate,area:d.area||false,col:d.col,cd:0});
+  }
+  update(dt){
+    if(this.cd>0)this.cd-=dt;
+    if(this.cd<=0){
+      let tgt=null;
+      for(const e of enemies)if(e.alive&&Math.hypot(e.x-this.x,e.y-this.y)<this.range&&(!tgt||e.dist>tgt.dist))tgt=e;
+      if(tgt){
+        const mb=blastFrames>0, dmg=mb?this.dmg*4:this.dmg;
+        projs.push(new Proj(this.x,this.y,tgt,dmg,this.area,mb,this.col));
+        this.cd=1/this.rate;
+      }
+    }
+  }
+  draw(){
+    cx.save();cx.font='24px Arial';cx.textAlign='center';cx.textBaseline='middle';
+    if(blastFrames>0){cx.shadowColor='#ffdd00';cx.shadowBlur=14*(blastFrames/180);}
+    cx.fillText(this.e,this.x,this.y);cx.restore();
+  }
+}
+class Enemy {
+  constructor(type){
+    const d=ED[type]; Object.assign(this,{type,e:d.e,maxHp:d.hp,hp:d.hp,spd:d.spd,rew:d.rew,col:d.col,boss:d.boss||false,wi:0,dist:0,alive:true,ft:0});
+    this.x=WP[0].x;this.y=WP[0].y;this.sz=d.boss?36:24;
+  }
+  update(dt){
+    if(!this.alive)return;
+    if(this.ft>0)this.ft-=dt;
+    let rem=this.spd*dt;
+    while(rem>0&&this.wi<WP.length-1){
+      const n=WP[this.wi+1],dx=n.x-this.x,dy=n.y-this.y,d=Math.hypot(dx,dy);
+      if(rem>=d){this.x=n.x;this.y=n.y;this.wi++;this.dist+=d;rem-=d;}
+      else{const t=rem/d;this.x+=dx*t;this.y+=dy*t;this.dist+=rem;rem=0;}
+    }
+    if(this.wi>=WP.length-1){this.alive=false;lives--;updateHUD();if(lives<=0)endGame(false);}
+  }
+  hit(dmg){
+    this.hp-=dmg;this.ft=.12;
+    if(this.hp<=0){
+      this.alive=false;coins+=this.rew;score+=this.rew*2;updateHUD();
+      for(let i=0;i<8;i++)parts.push(new Part(this.x,this.y,this.col));
+      addFT(this.x,this.y-this.sz,`+${this.rew}💰`,this.col,15);
+    }
+  }
+  draw(){
+    if(!this.alive)return;
+    const bw=this.boss?48:32,bh=this.boss?7:5,bx=this.x-bw/2,by=this.y-this.sz-12;
+    cx.fillStyle='#333';cx.fillRect(bx,by,bw,bh);
+    cx.fillStyle=this.hp/this.maxHp>.5?'#44ff44':this.hp/this.maxHp>.25?'#ffcc00':'#ff3333';
+    cx.fillRect(bx,by,bw*(this.hp/this.maxHp),bh);
+    cx.save();
+    if(this.ft>0)cx.globalAlpha=.5+.5*Math.sin(this.ft*60);
+    cx.font=`${this.sz*1.5}px Arial`;cx.textAlign='center';cx.textBaseline='middle';
+    cx.shadowColor=this.col;cx.shadowBlur=this.boss?18:6;
+    cx.fillText(this.e,this.x,this.y);cx.restore();
+    if(this.boss){cx.fillStyle='#fff';cx.font='bold 10px Arial';cx.textAlign='center';cx.fillText('BOSS',this.x,this.y-this.sz-20);}
+  }
+}
+class Proj {
+  constructor(x,y,tgt,dmg,area,math,col){Object.assign(this,{x,y,tgt,dmg,area,math,col,alive:true,spd:math?480:280,r:math?8:4});}
+  update(dt){
+    if(!this.tgt.alive){this.alive=false;return;}
+    const dx=this.tgt.x-this.x,dy=this.tgt.y-this.y,d=Math.hypot(dx,dy),step=this.spd*dt;
+    if(d<=step){
+      if(this.area)enemies.forEach(e=>{if(e.alive&&Math.hypot(e.x-this.tgt.x,e.y-this.tgt.y)<80)e.hit(this.dmg*(e===this.tgt?1:.6));});
+      else this.tgt.hit(this.dmg);
+      this.alive=false;
+    } else {this.x+=dx/d*step;this.y+=dy/d*step;}
+  }
+  draw(){cx.save();cx.beginPath();cx.arc(this.x,this.y,this.r,0,Math.PI*2);cx.fillStyle=this.col;if(this.math){cx.shadowColor=this.col;cx.shadowBlur=14;}cx.fill();cx.restore();}
+}
+class Part {
+  constructor(x,y,col,s=1){this.x=x;this.y=y;this.vx=(Math.random()-.5)*8*s;this.vy=(Math.random()-.5)*8*s-3;this.r=2+Math.random()*4*s;this.col=col;this.life=1;this.decay=.03+Math.random()*.02;this.g=.15;}
+  update(){this.vy+=this.g;this.x+=this.vx;this.y+=this.vy;this.vx*=.97;this.life-=this.decay;return this.life>0;}
+  draw(){cx.save();cx.globalAlpha=Math.max(0,this.life);cx.fillStyle=this.col;cx.beginPath();cx.arc(this.x,this.y,this.r,0,Math.PI*2);cx.fill();cx.restore();}
+}
+class FT {
+  constructor(x,y,t,col,sz){this.x=x;this.y=y;this.t=t;this.col=col;this.sz=sz;this.life=1;this.vy=-2;}
+  update(){this.y+=this.vy;this.vy*=.96;this.life-=.022;return this.life>0;}
+  draw(){cx.save();cx.globalAlpha=Math.max(0,this.life);cx.fillStyle=this.col;cx.font=`bold ${this.sz}px Arial`;cx.textAlign='center';cx.textBaseline='middle';cx.shadowColor=this.col;cx.shadowBlur=8;cx.fillText(this.t,this.x,this.y);cx.restore();}
+}
+function addFT(x,y,t,col='#ffdd00',sz=22){fts.push(new FT(x,y,t,col,sz));}
+let running=false,lives,score,coins,wave,wstate,spawnQ=[],spawnT=0;
+let towers=[],enemies=[],projs=[],parts=[],fts=[];
+let selType=null;
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function updateHUD(){
+  document.getElementById('hLives').textContent='❤️'.repeat(Math.max(0,lives));
+  document.getElementById('hWave').textContent=`第${wave}关`;
+  document.getElementById('hScore').textContent=score;
+  document.getElementById('hCoins').textContent=`💰${coins}`;
+  for(const[k,d]of Object.entries(TD)){
+    const el=document.getElementById(`tb-${k}`);
+    if(el)el.className='tbtn'+(coins<d.cost?' dis':'')+(selType===k?' sel':'');
+  }
+}
+function selTower(t){
+  selType=t;
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('sel'));
+  if(t)document.getElementById(`tb-${t}`)?.classList.add('sel');
+  updateHUD();
+}
+function startWave(){
+  wstate='spawning';spawnQ=[];let t=0;
+  const wd=WAVES[Math.min(wave-1,WAVES.length-1)];
+  for(const[type,count,iv]of wd){for(let i=0;i<count;i++){spawnQ.push({type,time:t});t+=iv;}}
+  spawnQ.sort((a,b)=>a.time-b.time);spawnT=0;
+  Q=genQ(wave);updateQUI();
+  addFT(cv.width/2,cv.height/2,`第${wave}关 开始！`,'#ffdd00',34);
+}
+function nextWave(){
+  if(wave>=WAVES.length){endGame(true);return;}
+  wave++;wstate='prep';updateHUD();
+  addFT(cv.width/2,cv.height/2,`关卡通过！+${20+wave*5}💰`,'#44ff88',30);
+  coins+=20+wave*5;updateHUD();
+  setTimeout(startWave,1800);
+}
+function drawBG(){
+  const g=cx.createLinearGradient(0,0,0,cv.height);
+  g.addColorStop(0,'#0d1f10');g.addColorStop(1,'#0a160a');
+  cx.fillStyle=g;cx.fillRect(0,0,cv.width,cv.height);
+}
+function drawPath(){
+  cx.save();cx.lineCap='round';cx.lineJoin='round';
+  cx.strokeStyle='rgba(0,0,0,.5)';cx.lineWidth=38;
+  cx.beginPath();WP.forEach((w,i)=>i?cx.lineTo(w.x,w.y):cx.moveTo(w.x,w.y));cx.stroke();
+  cx.strokeStyle='#3a3020';cx.lineWidth=34;
+  cx.beginPath();WP.forEach((w,i)=>i?cx.lineTo(w.x,w.y):cx.moveTo(w.x,w.y));cx.stroke();
+  cx.strokeStyle='rgba(255,220,80,.12)';cx.lineWidth=3;cx.setLineDash([14,12]);
+  cx.beginPath();WP.forEach((w,i)=>i?cx.lineTo(w.x,w.y):cx.moveTo(w.x,w.y));cx.stroke();
+  cx.restore();
+  const last=WP[WP.length-1];
+  cx.save();cx.font='28px Arial';cx.textAlign='center';cx.textBaseline='middle';cx.fillText('🏰',last.x,last.y);cx.restore();
+}
+function drawSpots(){
+  SP.forEach((s,i)=>{
+    if(towers.some(t=>t.si===i))return;
+    const can=selType&&coins>=(TD[selType]?.cost||0);
+    cx.save();cx.beginPath();cx.arc(s.x,s.y,16,0,Math.PI*2);
+    cx.fillStyle=can?'rgba(100,200,100,.22)':'rgba(255,255,255,.04)';
+    cx.strokeStyle=can?'rgba(100,255,100,.6)':'rgba(255,255,255,.14)';
+    cx.lineWidth=1.5;cx.fill();cx.stroke();cx.restore();
+  });
+}
+function drawBlastOverlay(){
+  if(blastFrames<=0)return;
+  cx.save();cx.fillStyle=`rgba(255,220,50,${(blastFrames/180)*.13})`;cx.fillRect(0,0,cv.width,cv.height);cx.restore();
+}
+function onTap(e){
+  if(!running||!selType)return;
+  const def=TD[selType];if(!def||coins<def.cost)return;
+  const r=cv.getBoundingClientRect();
+  const tx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  const ty=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+  let best=null,bestD=Infinity,bestI=-1;
+  SP.forEach((s,i)=>{const d=Math.hypot(s.x-tx,s.y-ty);if(d<38&&d<bestD&&!towers.some(t=>t.si===i)){best=s;bestD=d;bestI=i;}});
+  if(best){towers.push(new Tower(selType,best.x,best.y,bestI));coins-=def.cost;score+=2;updateHUD();addFT(best.x,best.y-28,TD[selType].e,'#fff',28);}
+}
+cv.addEventListener('click',onTap);
+cv.addEventListener('touchend',e=>{e.preventDefault();onTap(e);},{passive:false});
+function startGame(){
+  lives=3;score=0;coins=50;wave=1;
+  towers=[];enemies=[];projs=[];parts=[];fts=[];
+  selType=null;blastFrames=0;aCool=0;correctCount=0;
+  document.getElementById('sStart').style.display='none';
+  document.getElementById('sOver').style.display='none';
+  updateHUD();running=true;wstate='prep';
+  Q=genQ(1);updateQUI();
+  setTimeout(startWave,800);
+}
+function endGame(won){
+  running=false;
+  document.getElementById('oTitle').textContent=won?'🎉 全部通关！':'游戏结束 😢';
+  document.getElementById('oScore').textContent=score;
+  document.getElementById('oWave').textContent=wave;
+  document.getElementById('oCorrect').textContent=correctCount;
+  const msgs=['再来一次！数学答得越快越厉害💪','不错，再练练就能过关！😊','真棒，下次试试更难的！🌟','你是数学小天才！🏆'];
+  document.getElementById('oMsg').textContent=won?msgs[3]:score>=200?msgs[2]:score>=80?msgs[1]:msgs[0];
+  document.getElementById('sOver').style.display='flex';
+}
+let last=0;
+function loop(ts){
+  requestAnimationFrame(loop);
+  const dt=Math.min((ts-last)/1000,.05);last=ts;
+  drawBG();drawPath();drawSpots();
+  if(!running)return;
+  if(blastFrames>0)blastFrames--;
+  if(aCool>0)aCool--;
+  drawBlastOverlay();
+  if(wstate==='spawning'){
+    spawnT+=dt;
+    while(spawnQ.length&&spawnQ[0].time<=spawnT)enemies.push(new Enemy(spawnQ.shift().type));
+    if(!spawnQ.length)wstate='fighting';
+  }
+  if(wstate==='fighting'&&enemies.length&&enemies.every(e=>!e.alive)){wstate='complete';setTimeout(nextWave,1800);}
+  towers.forEach(t=>t.update(dt));
+  enemies.forEach(e=>e.update(dt));
+  projs=projs.filter(p=>{p.update(dt);return p.alive;});
+  parts=parts.filter(p=>{const a=p.update();if(a)p.draw();return a;});
+  enemies.forEach(e=>e.draw());
+  projs.forEach(p=>p.draw());
+  towers.forEach(t=>t.draw());
+  fts=fts.filter(f=>{const a=f.update();if(a)f.draw();return a;});
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
